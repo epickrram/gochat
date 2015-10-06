@@ -44,6 +44,11 @@ func drawWelcomeScreen() {
 }
 
 func main() {
+	logFile, err := os.Create("/tmp/gochat.log")
+	if err != nil {
+		panic(err)
+	}
+	log.SetOutput(logFile)
 	fmt.Println("Enter password:")
 	passwdBytes, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 
@@ -96,9 +101,11 @@ func main() {
 			switch v := chat.(type) {
 			case xmpp.Chat:
 				lastMessage = "Chat:" + v.Remote + "/" + v.Text
+				log.Printf("Received chat update. remote:%v, text:%v, roster:%v, type:%v", v.Remote, v.Text, v.Roster, v.Type)
 				drawWelcomeScreen()
 			case xmpp.Presence:
-				lastMessage = "Chat:" + v.From + "/" + v.Show
+				log.Printf("Received presence update. from:%v, to:%v, show:%v, type:%v", v.From, v.To, v.Show, v.Type)
+				lastMessage = "Presence:" + v.From + "/" + v.Show
 				drawWelcomeScreen()
 			}
 		}
