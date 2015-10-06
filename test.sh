@@ -14,8 +14,12 @@ fi
 
 echo "flags: $FLAGS"
 
-for i in `find $GOPATH/src/epickrram.com -iname '*_test.go'`;
+for i in `find . -iname '*_test.go'`;
 do
-	echo go test $FLAGS `dirname $i`
-	go test $FLAGS `dirname $i`
+	package_dir=`dirname $i`
+	if [[ $package_dir =~ .*epickrram.* ]]
+	then
+		echo go test $FLAGS `dirname $i`
+		go test $FLAGS `dirname $i`
+	fi
 done
