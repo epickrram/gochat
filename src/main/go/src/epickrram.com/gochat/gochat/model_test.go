@@ -5,25 +5,29 @@ import (
 	"testing"
 )
 
+func getState() *State {
+	return NewState(&NoOpRenderer{})
+}
+
 func TestShouldHandleRemovingUnknownContact(t *testing.T) {
-	state := NewState()
+	state := getState()
 	state.OnContactEvent("contact-0", "First Last", UNAVAILABLE)
-	if len(state.contacts) != 0 {
+	if len(state.contacts.contacts) != 0 {
 		t.Errorf("Contacts should be empty: %v", state.contacts)
 	}
 }
 
 func TestShouldHandleAdditionOfContact(t *testing.T) {
-	state := NewState()
+	state := getState()
 	state.OnContactEvent("contact-0", "First Last", AVAILABLE)
 
-	if len(state.contacts) != 1 {
-		t.Errorf("Contacts should be size 1: %v", state.contacts)
+	if len(state.contacts.contacts) != 1 {
+		t.Errorf("Contacts should be size 1: %v", state.contacts.contacts)
 	}
 }
 
 func TestAddMessageFromNewConversation(t *testing.T) {
-	state := NewState()
+	state := getState()
 	state.OnMessageDelivery("conv-0", "sender", "hello world")
 	tabFound := false
 	for _, tab := range state.tabs {
@@ -42,7 +46,7 @@ func TestAddMessageFromNewConversation(t *testing.T) {
 }
 
 func TestAddMessageFromExistingConversation(t *testing.T) {
-	state := NewState()
+	state := getState()
 	state.OnMessageDelivery("conv-0", "sender", "hello world")
 	state.OnMessageDelivery("conv-0", "sender2", "foobar")
 	tabFound := false
@@ -62,7 +66,7 @@ func TestAddMessageFromExistingConversation(t *testing.T) {
 }
 
 func TestSendKeysToStateWhenInChatMode(t *testing.T) {
-	state := NewState()
+	state := getState()
 
 	state.DisplayChatWindow()
 	for _, c := range "hello\nworld" {

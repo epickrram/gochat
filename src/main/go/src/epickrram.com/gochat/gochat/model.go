@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"sort"
 )
 
 const (
@@ -14,25 +15,81 @@ const (
 	UNAVAILABLE int = 3
 )
 
+type Contact struct {
+	id   string
+	name string
+}
+
+type Contacts struct {
+	contacts      ContactSet
+	selectedIndex int
+}
+
+type ContactSet []Contact
+
+func (slice ContactSet) Len() int {
+	return len(slice)
+}
+
+func (slice ContactSet) Less(i, j int) bool {
+	return slice[i].id < slice[j].id
+}
+
+func (slice ContactSet) Swap(i, j int) {
+	slice[i], slice[j] = slice[j], slice[i]
+}
+
+func removeContact(contactId string, contacts *Contacts) {
+	indexToRemove := -1
+	for idx, contact := range contacts.contacts {
+		if contact.id == contactId {
+			indexToRemove = idx
+			break
+		}
+	}
+
+	if indexToRemove != -1 {
+		contacts.contacts = append(contacts.contacts[:indexToRemove], contacts.contacts[indexToRemove+1:]...)
+		sort.Sort(contacts.contacts)
+	}
+}
+
+func addContact(contactId, displayName string, contacts *Contacts) {
+	shouldAdd := true
+	for _, contact := range contacts.contacts {
+		if contact.id == contactId {
+			shouldAdd = false
+			break
+		}
+	}
+	if shouldAdd {
+		contacts.contacts = append(contacts.contacts, Contact{contactId, displayName})
+		sort.Sort(contacts.contacts)
+	}
+}
+
 type State struct {
 	tabs        []Tab
 	composition []string
-	contacts    map[string]string
+	contacts    Contacts
 	viewState   int
+	renderer    Renderer
 }
 
-func NewState() *State {
-	state := &State{make([]Tab, 0), make([]string, 1), make(map[string]string), CHAT_WINDOW}
+func NewState(renderer Renderer) *State {
+	state := &State{make([]Tab, 0), make([]string, 1), Contacts{make([]Contact, 0), -1}, CONTACT_WINDOW, renderer}
 	state.composition[0] = ""
 	return state
 }
 
 func (state *State) OnContactEvent(contactId, displayName string, status int) {
 	if status == AVAILABLE {
-		state.contacts[contactId] = displayName
+		addContact(contactId, displayName, &state.contacts)
 	} else if status == UNAVAILABLE {
-		delete(state.contacts, contactId)
+		removeContact(contactId, &state.contacts)
 	}
+
+	state.renderer.RenderState(state)
 }
 
 func (state *State) OnMessageDelivery(conversationId, source, message string) {
@@ -44,6 +101,8 @@ func (state *State) OnMessageDelivery(conversationId, source, message string) {
 	}
 
 	conversationTab.contentBuffer.addLine(message)
+
+	state.renderer.RenderState(state)
 }
 
 func (state *State) SendKey(c string) {
@@ -59,6 +118,8 @@ func (state *State) SendKey(c string) {
 		}
 		break
 	}
+
+	state.renderer.RenderState(state)
 }
 
 func (state *State) DisplayChatWindow() {
@@ -121,6 +182,11 @@ func findActiveTab(tabs []Tab) *Tab {
 		if tab.active {
 			return &tab
 		}
+	}
+
+	if len(tabs) != 0 {
+		tabs[0].active = true
+		return &tabs[0]
 	}
 
 	return nil
