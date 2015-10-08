@@ -5,11 +5,35 @@ import (
 	"log"
 )
 
+
+/*
+0 header
+1 -hr-
+2 | tab 1   | tab 2
+3 -hr-
+4
+
+
+(height -6) -hr-
+
+
+x4
+
+(height - 1) -hr-
+ */
+
+
 const (
-	HEADER_OFFSET            = 0
+	HEADER_OFFSET int           = 0
+	HEADER_HR int = 1
+	TAB_OFFSET int = 2
+	TAB_HR int = 3
+	CONTENT_START int = 4
 	TOP_BORDER        int    = 4
-	COMPOSITION_PANEL int    = 6
+	COMPOSITION_PANEL_HEIGHT int    = 4
 	HEADER_MESSAGE    string = "Terminal Chat"
+	COMPOSITION_PANEL_HR int = -6
+	COMPOSITION_PANEL_START int = -5
 )
 
 type Renderer interface {
@@ -26,27 +50,29 @@ type TermBoxRenderer struct {
 func (renderer *TermBoxRenderer) RenderState(state *State) {
 	width = renderer.width
 	height = renderer.height
-	availableHeight := height - TOP_BORDER - COMPOSITION_PANEL - 2
+	availableHeight := height - TOP_BORDER - COMPOSITION_PANEL_HEIGHT - 2
+	contentFooter := height - 7
 
 	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
 	drawHeader(width)
 
-	drawHorizontalLine(0, HEADER_OFFSET+1, width)
-	drawHorizontalLine(0, height-COMPOSITION_PANEL, width)
+	drawHorizontalLine(0, HEADER_HR, width)
+	drawHorizontalLine(0, height + COMPOSITION_PANEL_HR, width)
 
 	switch state.viewState {
 	case CONTACT_WINDOW:
-		yOffset := HEADER_OFFSET + 2
+		yOffset := CONTENT_START
 		for _, contact := range state.contacts.contacts {
-			if yOffset < availableHeight+(HEADER_OFFSET+2) {
+			if yOffset < contentFooter {
 				writeStringAt(1, yOffset, contact.name)
 				yOffset++
 			}
 		}
 	case CHAT_WINDOW:
 		drawTabs(width, state.tabs)
-		drawHorizontalLine(0, HEADER_OFFSET+3, width)
-		drawTabContent(findActiveTab(state.tabs), availableHeight)
+		drawHorizontalLine(0, TAB_HR, width)
+		drawTabContent(findActiveTab(state.tabs), availableHeight, contentFooter)
+		drawCompositionContent(state.composition, height)
 	}
 
 	termbox.Flush()
@@ -69,21 +95,39 @@ func drawHorizontalLine(x, y, width int) {
 	}
 }
 
-func drawTabContent(tab *Tab, availableHeight int) {
+func drawCompositionContent(messages []string, height int) {
+	log.Printf("composition: %v", messages)
+	yOffset := height - 1
+	idx := len(messages) - 1
+	limit := height + COMPOSITION_PANEL_START
+	log.Printf("yOffset: %v, limit: %v", yOffset, limit)
+	for idx >= 0 && yOffset > limit {
+		writeStringAt(0, yOffset, messages[idx])
+		idx--
+		yOffset--
+	}
+}
+
+func drawTabContent(tab *Tab, availableHeight, contentFooter int) {
 	if tab == nil {
 		log.Print("active tab is null")
 		return
 	}
-	yOffset := HEADER_OFFSET + 5
+	yOffset := CONTENT_START
+	availableHeight = contentFooter - CONTENT_START
 	messages := tab.contentBuffer.getLastContent(availableHeight)
 
-	if len(messages) < availableHeight {
-		yOffset += availableHeight - len(messages)
-	}
-	log.Printf("Messages for tab %v: %v, at %v", tab.name, messages, yOffset)
+//	log.Printf("yOffset starts at %v, availableHeight is %v", yOffset, availableHeight)
 
-	for _, message := range tab.contentBuffer.getLastContent(availableHeight) {
-		if yOffset < availableHeight - COMPOSITION_PANEL {
+	if len(messages) < availableHeight {
+		emptyLines := availableHeight - len(messages)
+		yOffset += emptyLines
+//		log.Printf("yOffset updated to %v", yOffset)
+	}
+//	log.Printf("Messages for tab %v: %v, at %v", tab.name, messages, yOffset)
+
+	for _, message := range messages {
+		if yOffset <= contentFooter {
 			writeStringAt(0, yOffset, message)
 			yOffset++
 		}
@@ -94,7 +138,7 @@ func drawTabs(width int, tabs []Tab) {
 	tabWidth := width / len(tabs)
 	xOffset := 0
 	for _, tab := range tabs {
-		writeStringAt(xOffset, HEADER_OFFSET+2, trimString(tabWidth, "| "+tab.name))
+		writeStringAt(xOffset, TAB_OFFSET, trimString(tabWidth, "| "+tab.name))
 		xOffset += width
 	}
 }

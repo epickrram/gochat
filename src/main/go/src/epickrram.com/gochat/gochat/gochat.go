@@ -85,6 +85,8 @@ func main() {
 		eventChannelToModel <- &MessageReceivedEvent{xmpp.Chat{Remote: "remote1", Type: "", Text: "message 1"}}
 		eventChannelToModel <- &MessageReceivedEvent{xmpp.Chat{Remote: "remote1", Type: "", Text: "message 2"}}
 		eventChannelToModel <- &MessageReceivedEvent{xmpp.Chat{Remote: "remote1", Type: "", Text: "message 3"}}
+		eventChannelToModel <- &MessageReceivedEvent{xmpp.Chat{Remote: "remote1", Type: "", Text: "message 4"}}
+		eventChannelToModel <- &MessageReceivedEvent{xmpp.Chat{Remote: "remote1", Type: "", Text: "message 5"}}
 	} else {
 		fmt.Println("Enter password:")
 		passwdBytes, err := terminal.ReadPassword(int(os.Stdin.Fd()))
@@ -179,6 +181,8 @@ loop:
 				ctrlxpressed = true
 			} else {
 				ctrlxpressed = false
+
+				eventChannelToModel <- &KeyPressEvent{ev.Ch}
 			}
 
 			//			termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)

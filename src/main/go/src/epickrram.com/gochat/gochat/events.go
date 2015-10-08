@@ -3,7 +3,7 @@ package main
 import "github.com/mattn/go-xmpp"
 
 type KeyPressEvent struct {
-	key string
+	key rune
 }
 
 func (event *KeyPressEvent) Execute(state *State) {

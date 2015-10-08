@@ -105,16 +105,16 @@ func (state *State) OnMessageDelivery(conversationId, source, message string) {
 	state.renderer.RenderState(state)
 }
 
-func (state *State) SendKey(c string) {
+func (state *State) SendKey(c rune) {
 	switch state.viewState {
 	case CONTACT_WINDOW:
 		break
 	case CHAT_WINDOW:
-		if c == "\n" {
+		if c == '\n' {
 			state.composition = append(state.composition, "")
 		} else {
 			currentLine := state.composition[len(state.composition)-1]
-			state.composition[len(state.composition)-1] = currentLine + c
+			state.composition[len(state.composition)-1] = currentLine + string(c)
 		}
 		break
 	}
