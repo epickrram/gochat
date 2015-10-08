@@ -70,7 +70,7 @@ func TestSendKeysToStateWhenInChatMode(t *testing.T) {
 
 	state.DisplayChatWindow()
 	for _, c := range "hello\nworld" {
-		state.SendKey(string(c))
+		state.SendKey(c)
 	}
 
 	cmp := state.composition
