@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source ./.env.sh
+source ./env.sh
 
 go get github.com/nsf/termbox-go
 go get github.com/mattn/go-xmpp
