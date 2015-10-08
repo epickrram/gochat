@@ -154,6 +154,16 @@ func (contentBuffer *ContentBuffer) getContent() []string {
 	return view
 }
 
+func (contentBuffer *ContentBuffer) getLastContent(max int) []string {
+	content := contentBuffer.getContent()
+	if max < len(content) {
+		return content[len(content) - max:]
+	}
+
+	return content
+}
+
+
 func (contentBuffer *ContentBuffer) addLine(line string) {
 	contentBuffer.content[contentBuffer.pointer%len(contentBuffer.content)] = line
 	contentBuffer.pointer++

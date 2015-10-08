@@ -9,7 +9,9 @@ import "os"
 import "strings"
 import "github.com/nsf/termbox-go"
 import "github.com/mattn/go-xmpp"
-import "golang.org/x/crypto/ssh/terminal"
+import (
+	"golang.org/x/crypto/ssh/terminal"
+)
 
 var width, height int
 var lastMessage = ""
@@ -20,6 +22,7 @@ var password string
 var status = "xa"
 var statusMessage = "I for one welcome our new codebot overlords."
 var session = flag.Bool("session", false, "use server session")
+var testMode = flag.Bool("testMode", false, "send test data")
 
 func drawWelcomeScreen() {
 	welcomeMessage := "Hello world"
@@ -48,18 +51,10 @@ func main() {
 		panic(err)
 	}
 	log.SetOutput(logFile)
-	fmt.Println("Enter password:")
-	passwdBytes, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-
-	if err != nil {
-		panic(err)
-	}
-
-	password = string(passwdBytes)
 
 	flag.Parse()
 
-	if *username == "" || password == "" {
+	if *username == "" {
 		flag.Usage()
 	}
 
@@ -67,27 +62,6 @@ func main() {
 		ServerName:         strings.Split(*server, ":")[0],
 		InsecureSkipVerify: true,
 	}
-
-	var talk *xmpp.Client
-
-	options := xmpp.Options{Host: *server,
-		User:          *username,
-		Password:      password,
-		NoTLS:         true,
-		Debug:         false,
-		Session:       *session,
-		Status:        status,
-		StatusMessage: statusMessage,
-	}
-
-	fmt.Println("Attempting to create client")
-	talk, err = options.NewClient()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Created client")
 
 	err = termbox.Init()
 	if err != nil {
@@ -105,27 +79,69 @@ func main() {
 
 	eventChannelToModel := GetEventChannelToModel(renderer)
 
+	if *testMode {
+		eventChannelToModel <- &PresenceUpdateEvent{xmpp.Presence{"from1", "to1", "", ""}}
+		eventChannelToModel <- &PresenceUpdateEvent{xmpp.Presence{"from2", "to2", "", ""}}
+		eventChannelToModel <- &MessageReceivedEvent{xmpp.Chat{Remote: "remote1", Type: "", Text: "message 1"}}
+		eventChannelToModel <- &MessageReceivedEvent{xmpp.Chat{Remote: "remote1", Type: "", Text: "message 2"}}
+		eventChannelToModel <- &MessageReceivedEvent{xmpp.Chat{Remote: "remote1", Type: "", Text: "message 3"}}
+	} else {
+		fmt.Println("Enter password:")
+		passwdBytes, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+
+		if err != nil {
+			panic(err)
+		}
+
+		password = string(passwdBytes)
+
+
+		var talk *xmpp.Client
+
+		options := xmpp.Options{Host: *server,
+			User:          *username,
+			Password:      password,
+			NoTLS:         true,
+			Debug:         false,
+			Session:       *session,
+			Status:        status,
+			StatusMessage: statusMessage,
+		}
+
+		fmt.Println("Attempting to create client")
+		talk, err = options.NewClient()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("Created client")
+		go func() {
+			for {
+				chat, err := talk.Recv()
+				if err != nil {
+					log.Fatal(err)
+				}
+				switch v := chat.(type) {
+				case xmpp.Chat:
+					lastMessage = "Chat:" + v.Remote + "/" + v.Text
+					log.Printf("Received chat update. remote:%v, text:%v, roster:%v, type:%v", v.Remote, v.Text, v.Roster, v.Type)
+					eventChannelToModel <- &MessageReceivedEvent{v}
+				case xmpp.Presence:
+					log.Printf("Received presence update. from:%v, to:%v, show:%v, type:%v", v.From, v.To, v.Show, v.Type)
+					lastMessage = "Presence:" + v.From + "/" + v.Show
+					eventChannelToModel <- &PresenceUpdateEvent{v}
+				}
+			}
+		}()
+
+	}
+
+
+
 	drawWelcomeScreen()
 	termbox.Flush()
 
-	go func() {
-		for {
-			chat, err := talk.Recv()
-			if err != nil {
-				log.Fatal(err)
-			}
-			switch v := chat.(type) {
-			case xmpp.Chat:
-				lastMessage = "Chat:" + v.Remote + "/" + v.Text
-				log.Printf("Received chat update. remote:%v, text:%v, roster:%v, type:%v", v.Remote, v.Text, v.Roster, v.Type)
-				eventChannelToModel <- &MessageReceivedEvent{v}
-			case xmpp.Presence:
-				log.Printf("Received presence update. from:%v, to:%v, show:%v, type:%v", v.From, v.To, v.Show, v.Type)
-				lastMessage = "Presence:" + v.From + "/" + v.Show
-				eventChannelToModel <- &PresenceUpdateEvent{v}
-			}
-		}
-	}()
 
 	ctrlxpressed := false
 

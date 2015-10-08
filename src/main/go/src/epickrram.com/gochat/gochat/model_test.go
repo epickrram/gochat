@@ -79,6 +79,22 @@ func TestSendKeysToStateWhenInChatMode(t *testing.T) {
 	}
 }
 
+func TestContentBufferView(t *testing.T) {
+	cb := NewContentBuffer(10)
+	cb.addLine("minusTwo")
+	cb.addLine("zero")
+	cb.addLine("one")
+	cb.addLine("two")
+
+	content := cb.getLastContent(2)
+	if len(content) != 2 {
+		t.Errorf("Content length incorrect: %v", len(content))
+	}
+	if content[0] != "one" || content[1] != "two" {
+		t.Errorf("Content incorrect: %v", content)
+	}
+}
+
 func TestContentBuffer(t *testing.T) {
 	cb := NewContentBuffer(10)
 	cb.addLine("one")

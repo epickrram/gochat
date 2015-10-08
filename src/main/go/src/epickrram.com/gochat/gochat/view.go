@@ -75,7 +75,14 @@ func drawTabContent(tab *Tab, availableHeight int) {
 		return
 	}
 	yOffset := HEADER_OFFSET + 5
-	for _, message := range tab.contentBuffer.getContent() {
+	messages := tab.contentBuffer.getLastContent(availableHeight)
+
+	if len(messages) < availableHeight {
+		yOffset += availableHeight - len(messages)
+	}
+	log.Printf("Messages for tab %v: %v, at %v", tab.name, messages, yOffset)
+
+	for _, message := range tab.contentBuffer.getLastContent(availableHeight) {
 		if yOffset < availableHeight - COMPOSITION_PANEL {
 			writeStringAt(0, yOffset, message)
 			yOffset++
