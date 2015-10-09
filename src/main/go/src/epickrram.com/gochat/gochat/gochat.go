@@ -177,6 +177,9 @@ loop:
 			if ev.Key == termbox.KeyCtrlP && ctrlxpressed {
 				eventChannelToModel <- &SwitchViewEvent{CONTACT_WINDOW}
 			}
+			if ev.Key == termbox.KeyEnter {
+				eventChannelToModel <- &NewLineEvent{}
+			}
 			if ev.Key == termbox.KeyCtrlX {
 				ctrlxpressed = true
 			} else {

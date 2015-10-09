@@ -69,7 +69,11 @@ func TestSendKeysToStateWhenInChatMode(t *testing.T) {
 	state := getState()
 
 	state.DisplayChatWindow()
-	for _, c := range "hello\nworld" {
+	for _, c := range "hello" {
+		state.SendKey(c)
+	}
+	state.OnNewLine()
+	for _, c := range "world" {
 		state.SendKey(c)
 	}
 

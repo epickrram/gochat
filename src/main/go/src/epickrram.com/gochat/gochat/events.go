@@ -41,6 +41,14 @@ func (event *ResizeEvent) Execute(state *State) {
 	state.renderer.Sync()
 }
 
+type NewLineEvent struct {
+
+}
+
+func (event *NewLineEvent) Execute(state *State) {
+	state.OnNewLine()
+}
+
 type SwitchViewEvent struct {
 	viewType int
 }
